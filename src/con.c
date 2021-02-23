@@ -1686,9 +1686,9 @@ Rect con_border_style_rect(Con *con) {
     if (border_style == BS_NONE)
         return (Rect){0, 0, 0, 0};
     if (border_style == BS_NORMAL) {
-        result = (Rect){border_width, 0, -(2 * border_width), -(border_width)};
+        result = (Rect){0, 0, 0, 0};
     } else {
-        result = (Rect){border_width, border_width, -(2 * border_width), -(2 * border_width)};
+        result = (Rect){0, border_width, 0, 0};
     }
 
     /* If hide_edge_borders is set to no_gaps and it did not pass the no border check, show all borders */
@@ -1697,19 +1697,8 @@ Rect con_border_style_rect(Con *con) {
     } else {
         borders_to_hide = con_adjacent_borders(con) & config.hide_edge_borders;
     }
-
-    if (borders_to_hide & ADJ_LEFT_SCREEN_EDGE) {
-        result.x -= border_width;
-        result.width += border_width;
-    }
-    if (borders_to_hide & ADJ_RIGHT_SCREEN_EDGE) {
-        result.width += border_width;
-    }
     if (borders_to_hide & ADJ_UPPER_SCREEN_EDGE && (border_style != BS_NORMAL)) {
         result.y -= border_width;
-        result.height += border_width;
-    }
-    if (borders_to_hide & ADJ_LOWER_SCREEN_EDGE) {
         result.height += border_width;
     }
     return result;
