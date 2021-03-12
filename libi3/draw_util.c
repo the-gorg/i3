@@ -35,9 +35,11 @@ static void draw_util_set_source_color(surface_t *surface, color_t color);
 void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_drawable_t drawable,
                             xcb_visualtype_t *visual, int width, int height) {
     surface->id = drawable;
-    surface->visual_type = ((visual == NULL) ? visual_type : visual);
     surface->width = width;
     surface->height = height;
+
+    if (visual == NULL)
+        visual = visual_type;
 
     surface->gc = xcb_generate_id(conn);
     xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, surface->gc, surface->id, 0, NULL);
@@ -47,7 +49,7 @@ void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_draw
         ELOG("Could not create graphical context. Error code: %d. Please report this bug.\n", error->error_code);
     }
 
-    surface->surface = cairo_xcb_surface_create(conn, surface->id, surface->visual_type, width, height);
+    surface->surface = cairo_xcb_surface_create(conn, surface->id, visual, width, height);
     surface->cr = cairo_create(surface->surface);
 }
 
@@ -133,7 +135,7 @@ void draw_util_text(i3String *text, surface_t *surface, color_t fg_color, color_
     CAIRO_SURFACE_FLUSH(surface->surface);
 
     set_font_colors(surface->gc, fg_color, bg_color);
-    draw_text(text, surface->id, surface->gc, surface->visual_type, x, y, max_width);
+    draw_text(text, surface->id, surface->gc, surface->surface, x, y, max_width);
 
     /* Notify cairo that we (possibly) used another way to draw on the surface. */
     cairo_surface_mark_dirty(surface->surface);
