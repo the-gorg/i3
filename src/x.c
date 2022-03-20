@@ -9,6 +9,7 @@
  *
  */
 #include "all.h"
+#include "libi3.h"
 
 #include <unistd.h>
 
@@ -357,24 +358,38 @@ void x_window_kill(xcb_window_t window, kill_window_t kill_window) {
 
 static void x_draw_title_border(Con *con, struct deco_render_params *p) {
     assert(con->parent != NULL);
+    Con *parent = con->parent;
 
     Rect *dr = &(con->deco_rect);
+    if (con == focused || con_inside_focused(con)) {
+        /* Top */
+        draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+                            dr->x, dr->y, dr->width, 4);
+    } else {
+        if (parent->layout == L_TABBED)
+            if (con == TAILQ_FIRST(&(parent->focus_head))) 
+                draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+                                    dr->x, dr->y, dr->width, 4);
+            else
+                draw_util_rectangle(&(con->parent->frame_buffer), COLOR_TRANSPARENT,
+                                    dr->x, dr->y, dr->width, 4);
 
-//    /* Left */
-//    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
-//                        dr->x, dr->y, 1, dr->height);
-//
-//    /* Right */
-//    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
-//                        dr->x + dr->width - 1, dr->y, 1, dr->height);
+        else
+            draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+                                dr->x, dr->y, dr->width, 4);
+    }
 
-    /* Top */
-    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
-                        dr->x, dr->y, dr->width, 3);
+    //    /* Left */
+    //    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+    //                        dr->x, dr->y, 1, dr->height);
+    //
+    //    /* Right */
+    //    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+    //                        dr->x + dr->width - 1, dr->y, 1, dr->height);
 
-//    /* Bottom */
-//    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
-//                        dr->x, dr->y + dr->height - 1, dr->width, 1);
+    //    /* Bottom */
+    //    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+    //                        dr->x, dr->y + dr->height - 1, dr->width, 1);
 }
 
 static void x_draw_decoration_after_title(Con *con, struct deco_render_params *p) {
@@ -542,7 +557,7 @@ void x_draw_decoration(Con *con) {
 
         /* top area */
         draw_util_rectangle(&(con->frame_buffer), config.client.background,
-                            0, 0, r->width, w->y);
+                            0, 4, r->width, w->y);
         /* bottom area */
         draw_util_rectangle(&(con->frame_buffer), config.client.background,
                             0, w->y + w->height, r->width, r->height - (w->y + w->height));
@@ -607,7 +622,7 @@ void x_draw_decoration(Con *con) {
 
     /* 4: paint the bar */
     draw_util_rectangle(&(parent->frame_buffer), p->color->background,
-                        con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
+                        con->deco_rect.x, con->deco_rect.y + 4, con->deco_rect.width, con->deco_rect.height);
 
     /* 5: draw title border */
     x_draw_title_border(con, p);
@@ -697,11 +712,14 @@ void x_draw_decoration(Con *con) {
             break;
     }
 
+
+    int tab_offset = (con == focused || con_inside_focused(con)) || con == TAILQ_FIRST(&(parent->focus_head)) ? 2 : 4;
+
     draw_util_text(title, &(parent->frame_buffer),
                    p->color->text, p->color->background,
                    con->deco_rect.x + title_offset_x,
-                   con->deco_rect.y + text_offset_y + 2,
-                   deco_width - mark_width - 2 * title_padding);
+                   con->deco_rect.y + text_offset_y + tab_offset,
+                   deco_width - mark_width - 4 * title_padding);
 
     if (win == NULL || con->title_format != NULL) {
         I3STRING_FREE(title);
@@ -844,7 +862,7 @@ void x_push_node(Con *con) {
     con_state *state;
     Rect rect = con->rect;
 
-    //DLOG("Pushing changes for node %p / %s\n", con, con->name);
+    // DLOG("Pushing changes for node %p / %s\n", con, con->name);
     state = state_for_frame(con->frame.id);
 
     if (state->name != NULL) {
@@ -1089,7 +1107,7 @@ static void x_push_node_unmaps(Con *con) {
     Con *current;
     con_state *state;
 
-    //DLOG("Pushing changes (with unmaps) for node %p / %s\n", con, con->name);
+    // DLOG("Pushing changes (with unmaps) for node %p / %s\n", con, con->name);
     state = state_for_frame(con->frame.id);
 
     /* map/unmap if map state changed, also ensure that the child window
@@ -1165,7 +1183,7 @@ void x_push_changes(Con *con) {
     }
 
     DLOG("-- PUSHING WINDOW STACK --\n");
-    //DLOG("Disabling EnterNotify\n");
+    // DLOG("Disabling EnterNotify\n");
     /* We need to keep SubstructureRedirect around, otherwise clients can send
      * ConfigureWindow requests and get them applied directly instead of having
      * them become ConfigureRequests that i3 handles. */
@@ -1174,7 +1192,7 @@ void x_push_changes(Con *con) {
         if (state->mapped)
             xcb_change_window_attributes(conn, state->id, XCB_CW_EVENT_MASK, values);
     }
-    //DLOG("Done, EnterNotify disabled\n");
+    // DLOG("Done, EnterNotify disabled\n");
     bool order_changed = false;
     bool stacking_changed = false;
 
@@ -1204,14 +1222,14 @@ void x_push_changes(Con *con) {
         if (con_has_managed_window(state->con))
             memcpy(walk++, &(state->con->window->id), sizeof(xcb_window_t));
 
-        //DLOG("stack: 0x%08x\n", state->id);
+        // DLOG("stack: 0x%08x\n", state->id);
         con_state *prev = CIRCLEQ_PREV(state, state);
         con_state *old_prev = CIRCLEQ_PREV(state, old_state);
         if (prev != old_prev)
             order_changed = true;
         if ((state->initial || order_changed) && prev != CIRCLEQ_END(&state_head)) {
             stacking_changed = true;
-            //DLOG("Stacking 0x%08x above 0x%08x\n", prev->id, state->id);
+            // DLOG("Stacking 0x%08x above 0x%08x\n", prev->id, state->id);
             uint32_t mask = 0;
             mask |= XCB_CONFIG_WINDOW_SIBLING;
             mask |= XCB_CONFIG_WINDOW_STACK_MODE;
@@ -1264,13 +1282,13 @@ void x_push_changes(Con *con) {
         warp_to = NULL;
     }
 
-    //DLOG("Re-enabling EnterNotify\n");
+    // DLOG("Re-enabling EnterNotify\n");
     values[0] = FRAME_EVENT_MASK;
     CIRCLEQ_FOREACH_REVERSE (state, &state_head, state) {
         if (state->mapped)
             xcb_change_window_attributes(conn, state->id, XCB_CW_EVENT_MASK, values);
     }
-    //DLOG("Done, EnterNotify re-enabled\n");
+    // DLOG("Done, EnterNotify re-enabled\n");
 
     x_deco_recurse(con);
 
@@ -1356,9 +1374,9 @@ void x_push_changes(Con *con) {
         CIRCLEQ_REMOVE(&old_state_head, state, old_state);
         CIRCLEQ_INSERT_TAIL(&old_state_head, state, old_state);
     }
-    //CIRCLEQ_FOREACH(state, &old_state_head, old_state) {
-    //    DLOG("old stack: 0x%08x\n", state->id);
-    //}
+    // CIRCLEQ_FOREACH(state, &old_state_head, old_state) {
+    //     DLOG("old stack: 0x%08x\n", state->id);
+    // }
 
     xcb_flush(conn);
 }
@@ -1371,7 +1389,7 @@ void x_push_changes(Con *con) {
 void x_raise_con(Con *con) {
     con_state *state;
     state = state_for_frame(con->frame.id);
-    //DLOG("raising in new stack: %p / %s / %s / xid %08x\n", con, con->name, con->window ? con->window->name_json : "", state->id);
+    // DLOG("raising in new stack: %p / %s / %s / xid %08x\n", con, con->name, con->window ? con->window->name_json : "", state->id);
 
     CIRCLEQ_REMOVE(&state_head, state, state);
     CIRCLEQ_INSERT_HEAD(&state_head, state, state);

@@ -214,6 +214,7 @@ struct deco_render_params {
     color_t background;
     layout_t parent_layout;
     bool con_is_leaf;
+    bool not_focused;
 };
 
 /**
