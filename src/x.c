@@ -713,7 +713,7 @@ void x_draw_decoration(Con *con) {
     }
 
 
-    int tab_offset = (con == focused || con_inside_focused(con)) || con == TAILQ_FIRST(&(parent->focus_head)) ? 2 : 4;
+    int tab_offset = (con == focused || con_inside_focused(con)) || con == TAILQ_FIRST(&(parent->focus_head)) ? 1 : 3;
 
     draw_util_text(title, &(parent->frame_buffer),
                    p->color->text, p->color->background,
