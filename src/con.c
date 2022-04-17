@@ -851,8 +851,8 @@ void con_unmark(Con *con, const char *name) {
 Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
     Con *child;
     Match *match;
-    //DLOG("searching con for window %p starting at con %p\n", window, con);
-    //DLOG("class == %s\n", window->class_class);
+    // DLOG("searching con for window %p starting at con %p\n", window, con);
+    // DLOG("class == %s\n", window->class_class);
 
     TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
         TAILQ_FOREACH (match, &(child->swallow_head), matches) {
@@ -1686,9 +1686,10 @@ Rect con_border_style_rect(Con *con) {
     if (border_style == BS_NONE)
         return (Rect){0, 0, 0, 0};
     if (border_style == BS_NORMAL) {
-        result = (Rect){0, 0, 0, 0};
+        // result = (Rect){0, 0, 0, 0};
+        result = (Rect){border_width, 0, -(2 * border_width), -(border_width)};
     } else {
-        result = (Rect){0, border_width, 0, 0};
+        result = (Rect){border_width, border_width, -(2 * border_width), -(2 * border_width)};
     }
 
     /* If hide_edge_borders is set to no_gaps and it did not pass the no border check, show all borders */
@@ -2205,7 +2206,7 @@ void con_set_urgency(Con *con, bool urgent) {
     } else
         DLOG("Discarding urgency WM_HINT because timer is running\n");
 
-    //CLIENT_LOG(con);
+    // CLIENT_LOG(con);
     if (con->window) {
         if (con->urgent) {
             gettimeofday(&con->window->urgent, NULL);

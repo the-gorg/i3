@@ -359,37 +359,42 @@ void x_window_kill(xcb_window_t window, kill_window_t kill_window) {
 static void x_draw_title_border(Con *con, struct deco_render_params *p) {
     assert(con->parent != NULL);
     Con *parent = con->parent;
-
+    
     Rect *dr = &(con->deco_rect);
     if (con == focused || con_inside_focused(con)) {
         /* Top */
         draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
                             dr->x, dr->y, dr->width, 4);
+        /* Left */
+        draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+                            dr->x, dr->y, 4, dr->height);
+        /* Right */
+        draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+                            dr->x + dr->width - 4, dr->y, 4, dr->height);
     } else {
         if (parent->layout == L_TABBED)
-            if (con == TAILQ_FIRST(&(parent->focus_head))) 
+            if (con == TAILQ_FIRST(&(parent->focus_head))) {
                 draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
                                     dr->x, dr->y, dr->width, 4);
-            else
+            } else {
                 draw_util_rectangle(&(con->parent->frame_buffer), COLOR_TRANSPARENT,
                                     dr->x, dr->y, dr->width, 4);
-
-        else
+                /* Bottom */
+                draw_util_rectangle(&(con->parent->frame_buffer), config.client.focused.border,
+                                    dr->x, dr->y + dr->height - 4, dr->width, 4);
+            }
+        else {
+            /* Top */
             draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
                                 dr->x, dr->y, dr->width, 4);
+            /* Left */
+            draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+                                dr->x, dr->y, 2, dr->height);
+            /* Right */
+            draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+                                dr->x + dr->width - 2, dr->y, 2, dr->height);
+        }
     }
-
-    //    /* Left */
-    //    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
-    //                        dr->x, dr->y, 1, dr->height);
-    //
-    //    /* Right */
-    //    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
-    //                        dr->x + dr->width - 1, dr->y, 1, dr->height);
-
-    //    /* Bottom */
-    //    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
-    //                        dr->x, dr->y + dr->height - 1, dr->width, 1);
 }
 
 static void x_draw_decoration_after_title(Con *con, struct deco_render_params *p) {
@@ -711,7 +716,6 @@ void x_draw_decoration(Con *con) {
             title_offset_x = max(title_padding + mark_width, deco_width - title_padding - predict_text_width(title));
             break;
     }
-
 
     int tab_offset = (con == focused || con_inside_focused(con)) || con == TAILQ_FIRST(&(parent->focus_head)) ? 1 : 3;
 
